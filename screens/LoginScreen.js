@@ -1,16 +1,23 @@
-// LoginScreen.js
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, Button, View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { SigninUser } from '../api/api.js'; // Import the SigninUser function
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (username.trim() && password.trim()) {
-      navigation.navigate('Board');
+      try {
+        const response = await SigninUser({ username, password });
+        // If login is successful, navigate to the Board screen
+        navigation.navigate('Board');
+      } catch (error) {
+        // Handle login error here
+        alert('Erreur de connexion. Veuillez réessayer.');
+      }
     } else {
       alert('Veuillez remplir tous les champs.');
     }
