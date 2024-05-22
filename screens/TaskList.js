@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, Button, TouchableOpacity, Modal, ScrollView, Picker } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
+import axios from 'axios';
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
@@ -10,27 +11,61 @@ const TaskList = () => {
   const [editTaskId, setEditTaskId] = useState(null);
   const [editTaskStatus, setEditTaskStatus] = useState('');
 
-  const handleAddTask = () => {
-    if (newTaskText.trim()) {
-      const newTask = { id: tasks.length + 1, text: newTaskText, status: 'todo' };
-      setTasks([newTask, ...tasks]);
-      setNewTaskText('');
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const response = await axios.get('http://your-api-url/tasks');
+      setTasks(response.data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
     }
   };
 
-  const handleDragEnd = ({ data }) => {
-    setTasks(data);
+  const handleAddTask = async () => {
+    if (newTaskText.trim()) {
+      const newTask = { text: newTaskText, status: 'todo' };
+      try {
+        const response = await axios.post('http://your-api-url/tasks', newTask);
+        setTasks([response.data, ...tasks]);
+        setNewTaskText('');
+      } catch (error) {
+        console.error('Error adding task:', error);
+      }
+    }
   };
 
-  const handleEditTask = (taskId, status) => {
-    setTasks(tasks.map(task => (task.id === taskId ? { ...task, status } : task)));
-    setEditTaskId(null);
+  const handleEditTask = async (taskId, status) => {
+    try {
+      await axios.put(`http://your-api-url/tasks/${taskId}`, { status });
+      setTasks(tasks.map(task => (task.id === taskId ? { ...task, status } : task)));
+      setEditTaskId(null);
+    } catch (error) {
+      console.error('Error editing task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await axios.delete(`http://your-api-url/tasks/${taskId}`);
+      setTasks(tasks.filter(task => task.id !== taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const handleDragEnd = async ({ data }) => {
+    setTasks(data);
+    // Optionally, you can send updated order to the server
   };
 
   const renderTask = ({ item, drag }) => (
     <TouchableOpacity style={styles.task} onLongPress={drag}>
       <Text style={styles.taskText}>{item.text}</Text>
       <Button title="Edit" onPress={() => { setEditTaskId(item.id); setEditTaskStatus(item.status); }} />
+      <Button title="Delete" onPress={() => handleDeleteTask(item.id)} />
       {editTaskId === item.id && (
         <View style={styles.pickerContainer}>
           <Picker
